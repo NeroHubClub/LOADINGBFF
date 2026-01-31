@@ -1,642 +1,213 @@
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local wasInTrade = false
+local currentTradePartner = ""
 
-local LOADING_TIME = 45
-local LOADING_COLOR = Color3.fromRGB(0, 150, 255)
-
--- Function para i-adjust ang loading speed
-local function SetLoadingSpeed(newSpeed)
-    if type(newSpeed) == "number" and newSpeed > 0 then
-        LOADING_TIME = newSpeed
-        return true
-    end
-    return false
-end
-
--- UI para sa adjustable loading speed
-local SpeedControlUI = Instance.new("ScreenGui")
-SpeedControlUI.Name = "LoadingSpeedControl"
-SpeedControlUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-SpeedControlUI.DisplayOrder = 99998
-SpeedControlUI.ResetOnSpawn = false
-
-local SpeedControlFrame = Instance.new("Frame")
-SpeedControlFrame.Name = "SpeedControlFrame"
-SpeedControlFrame.Size = UDim2.new(0, 200, 0, 120)
-SpeedControlFrame.Position = UDim2.new(0, 10, 0, 10)
-SpeedControlFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
-SpeedControlFrame.BorderSizePixel = 0
-SpeedControlFrame.Parent = SpeedControlUI
-
-local SpeedCorner = Instance.new("UICorner")
-SpeedCorner.CornerRadius = UDim.new(0, 8)
-SpeedCorner.Parent = SpeedControlFrame
-
-local SpeedTitle = Instance.new("TextLabel")
-SpeedTitle.Name = "SpeedTitle"
-SpeedTitle.Text = "Loading Speed Control"
-SpeedTitle.Size = UDim2.new(1, 0, 0, 30)
-SpeedTitle.Position = UDim2.new(0, 0, 0, 0)
-SpeedTitle.BackgroundColor3 = Color3.fromRGB(10, 15, 25)
-SpeedTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedTitle.Font = Enum.Font.GothamBold
-SpeedTitle.TextSize = 14
-SpeedTitle.Parent = SpeedControlFrame
-
-local SpeedValue = Instance.new("TextLabel")
-SpeedValue.Name = "SpeedValue"
-SpeedValue.Text = "Current: " .. LOADING_TIME .. "s"
-SpeedValue.Size = UDim2.new(1, 0, 0, 25)
-SpeedValue.Position = UDim2.new(0, 0, 0, 35)
-SpeedValue.BackgroundTransparency = 1
-SpeedValue.TextColor3 = LOADING_COLOR
-SpeedValue.Font = Enum.Font.Gotham
-SpeedValue.TextSize = 12
-SpeedValue.Parent = SpeedControlFrame
-
-local SpeedSlider = Instance.new("Frame")
-SpeedSlider.Name = "SpeedSlider"
-SpeedSlider.Size = UDim2.new(0.8, 0, 0, 20)
-SpeedSlider.Position = UDim2.new(0.1, 0, 0, 70)
-SpeedSlider.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
-SpeedSlider.BorderSizePixel = 0
-SpeedSlider.Parent = SpeedControlFrame
-
-local SliderCorner = Instance.new("UICorner")
-SliderCorner.CornerRadius = UDim.new(0, 10)
-SliderCorner.Parent = SpeedSlider
-
-local SpeedFill = Instance.new("Frame")
-SpeedFill.Name = "SpeedFill"
-SpeedFill.Size = UDim2.new((LOADING_TIME / 60), 0, 1, 0)
-SpeedFill.BackgroundColor3 = LOADING_COLOR
-SpeedFill.BorderSizePixel = 0
-SpeedFill.Parent = SpeedSlider
-
-local FillCorner = Instance.new("UICorner")
-FillCorner.CornerRadius = UDim.new(0, 10)
-FillCorner.Parent = SpeedFill
-
-local SpeedButtons = Instance.new("Frame")
-SpeedButtons.Name = "SpeedButtons"
-SpeedButtons.Size = UDim2.new(1, 0, 0, 30)
-SpeedButtons.Position = UDim2.new(0, 0, 1, -30)
-SpeedButtons.BackgroundTransparency = 1
-SpeedButtons.Parent = SpeedControlFrame
-
-local FastButton = Instance.new("TextButton")
-FastButton.Name = "FastButton"
-FastButton.Text = "FAST"
-FastButton.Size = UDim2.new(0.4, 0, 0, 25)
-FastButton.Position = UDim2.new(0.05, 0, 0, 0)
-FastButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-FastButton.BorderSizePixel = 0
-FastButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FastButton.Font = Enum.Font.GothamBold
-FastButton.TextSize = 12
-FastButton.Parent = SpeedButtons
-
-local FastCorner = Instance.new("UICorner")
-FastCorner.CornerRadius = UDim.new(0, 6)
-FastCorner.Parent = FastButton
-
-local NormalButton = Instance.new("TextButton")
-NormalButton.Name = "NormalButton"
-NormalButton.Text = "NORMAL"
-NormalButton.Size = UDim2.new(0.4, 0, 0, 25)
-NormalButton.Position = UDim2.new(0.55, 0, 0, 0)
-NormalButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-NormalButton.BorderSizePixel = 0
-NormalButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-NormalButton.Font = Enum.Font.GothamBold
-NormalButton.TextSize = 12
-NormalButton.Parent = SpeedButtons
-
-local NormalCorner = Instance.new("UICorner")
-NormalCorner.CornerRadius = UDim.new(0, 6)
-NormalCorner.Parent = NormalButton
-
-FastButton.MouseButton1Click:Connect(function()
-    SetLoadingSpeed(10) -- 10 seconds (Fast)
-    SpeedFill.Size = UDim2.new(10/60, 0, 1, 0)
-    SpeedValue.Text = "Current: 10s (FAST)"
-    SpeedValue.TextColor3 = Color3.fromRGB(0, 255, 100)
-end)
-
-NormalButton.MouseButton1Click:Connect(function()
-    SetLoadingSpeed(45) -- 45 seconds (Normal)
-    SpeedFill.Size = UDim2.new(45/60, 0, 1, 0)
-    SpeedValue.Text = "Current: 45s (NORMAL)"
-    SpeedValue.TextColor3 = LOADING_COLOR
-end)
-
-SpeedControlUI.Parent = PlayerGui
-
--- Loading Screen GUI
-local LoadingScreen = Instance.new("ScreenGui")
-LoadingScreen.Name = "CompactLoadingScreen"
-LoadingScreen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-LoadingScreen.DisplayOrder = 99999
-LoadingScreen.ResetOnSpawn = false
-LoadingScreen.IgnoreGuiInset = true
-
-local FullBlackBackground = Instance.new("Frame")
-FullBlackBackground.Name = "FullBlackBackground"
-FullBlackBackground.Size = UDim2.new(1, 0, 1, 0)
-FullBlackBackground.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-FullBlackBackground.BackgroundTransparency = 0
-FullBlackBackground.BorderSizePixel = 0
-FullBlackBackground.ZIndex = 1
-FullBlackBackground.Parent = LoadingScreen
-
-local UIContainer = Instance.new("Frame")
-UIContainer.Name = "UIContainer"
-UIContainer.Size = UDim2.new(1, 0, 1, 0)
-UIContainer.BackgroundTransparency = 1
-UIContainer.BorderSizePixel = 0
-UIContainer.ZIndex = 2
-UIContainer.Parent = LoadingScreen
-
-local LoadingCard = Instance.new("Frame")
-LoadingCard.Name = "LoadingCard"
-LoadingCard.Size = UDim2.new(0, 300, 0, 250)
-LoadingCard.Position = UDim2.new(0.5, -150, 0.5, -125)
-LoadingCard.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
-LoadingCard.BackgroundTransparency = 0
-LoadingCard.BorderSizePixel = 0
-LoadingCard.ClipsDescendants = true
-LoadingCard.Parent = UIContainer
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0.08, 0)
-UICorner.Parent = LoadingCard
-
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Text = "BLOX FRUITS"
-Title.Size = UDim2.new(1, -20, 0, 25)
-Title.Position = UDim2.new(0, 10, 0, 15)
-Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 22
-Title.TextStrokeTransparency = 0.8
-Title.TextStrokeColor3 = Color3.fromRGB(0, 80, 160)
-Title.Parent = LoadingCard
-
-local Subtitle = Instance.new("TextLabel")
-Subtitle.Name = "Subtitle"
-Subtitle.Text = "Secure Script Loader"
-Subtitle.Size = UDim2.new(1, -20, 0, 18)
-Subtitle.Position = UDim2.new(0, 10, 0, 40)
-Subtitle.BackgroundTransparency = 1
-Subtitle.TextColor3 = Color3.fromRGB(180, 200, 230)
-Subtitle.Font = Enum.Font.Gotham
-Subtitle.TextSize = 14
-Subtitle.Parent = LoadingCard
-
-local AvatarContainer = Instance.new("Frame")
-AvatarContainer.Name = "AvatarContainer"
-AvatarContainer.Size = UDim2.new(0, 70, 0, 70)
-AvatarContainer.Position = UDim2.new(0.5, -35, 0.40, -35)
-AvatarContainer.BackgroundTransparency = 1
-AvatarContainer.ZIndex = 2
-AvatarContainer.Parent = LoadingCard
-
-local GlowingRing = Instance.new("Frame")
-GlowingRing.Name = "GlowingRing"
-GlowingRing.Size = UDim2.new(1.2, 0, 1.2, 0)
-GlowingRing.Position = UDim2.new(-0.1, 0, -0.1, 0)
-GlowingRing.BackgroundColor3 = LOADING_COLOR
-GlowingRing.BackgroundTransparency = 0.8
-GlowingRing.BorderSizePixel = 0
-GlowingRing.ZIndex = 1
-GlowingRing.Parent = AvatarContainer
-
-local RingCorner = Instance.new("UICorner")
-RingCorner.CornerRadius = UDim.new(1, 0)
-RingCorner.Parent = GlowingRing
-
-local AvatarFrame = Instance.new("ImageLabel")
-AvatarFrame.Name = "AvatarFrame"
-AvatarFrame.Size = UDim2.new(1, 0, 1, 0)
-AvatarFrame.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
-AvatarFrame.Image = ""
-AvatarFrame.ScaleType = Enum.ScaleType.Crop
-AvatarFrame.ZIndex = 2
-AvatarFrame.Parent = AvatarContainer
-
-local AvatarCorner = Instance.new("UICorner")
-AvatarCorner.CornerRadius = UDim.new(1, 0)
-AvatarCorner.Parent = AvatarFrame
-
-local AvatarStroke = Instance.new("UIStroke")
-AvatarStroke.Color = Color3.fromRGB(60, 70, 100)
-AvatarStroke.Thickness = 3
-AvatarStroke.Parent = AvatarFrame
-
-local StatusText = Instance.new("TextLabel")
-StatusText.Name = "StatusText"
-StatusText.Text = "Loading Trade Helper..."
-StatusText.Size = UDim2.new(1, -20, 0, 20)
-StatusText.Position = UDim2.new(0, 10, 0.62, 0)
-StatusText.BackgroundTransparency = 1
-StatusText.TextColor3 = Color3.fromRGB(220, 230, 255)
-StatusText.Font = Enum.Font.Gotham
-StatusText.TextSize = 16
-StatusText.Parent = LoadingCard
-
-local PercentageText = Instance.new("TextLabel")
-PercentageText.Name = "PercentageText"
-PercentageText.Text = "0,0%"
-PercentageText.Size = UDim2.new(1, -20, 0, 24)
-PercentageText.Position = UDim2.new(0, 10, 0.68, 0)
-PercentageText.BackgroundTransparency = 1
-PercentageText.TextColor3 = LOADING_COLOR
-PercentageText.Font = Enum.Font.GothamBold
-PercentageText.TextSize = 16
-PercentageText.Parent = LoadingCard
-
-local ProgressBarContainer = Instance.new("Frame")
-ProgressBarContainer.Name = "ProgressBarContainer"
-ProgressBarContainer.Size = UDim2.new(1, -20, 0, 6)
-ProgressBarContainer.Position = UDim2.new(0, 10, 0.78, 0)
-ProgressBarContainer.BackgroundColor3 = Color3.fromRGB(40, 45, 65)
-ProgressBarContainer.BorderSizePixel = 0
-ProgressBarContainer.ZIndex = 2
-ProgressBarContainer.Parent = LoadingCard
-
-local ProgressBarCorner = Instance.new("UICorner")
-ProgressBarCorner.CornerRadius = UDim.new(1, 0)
-ProgressBarCorner.Parent = ProgressBarContainer
-
-local ProgressBar = Instance.new("Frame")
-ProgressBar.Name = "ProgressBar"
-ProgressBar.Size = UDim2.new(0, 0, 1, 0)
-ProgressBar.BackgroundColor3 = LOADING_COLOR
-ProgressBar.BorderSizePixel = 0
-ProgressBar.ZIndex = 3
-ProgressBar.Parent = ProgressBarContainer
-
-local ProgressBarFillCorner = Instance.new("UICorner")
-ProgressBarFillCorner.CornerRadius = UDim.new(1, 0)
-ProgressBarFillCorner.Parent = ProgressBar
-
-local BottomDivider = Instance.new("Frame")
-BottomDivider.Name = "BottomDivider"
-BottomDivider.Size = UDim2.new(1, 0, 0, 1)
-BottomDivider.Position = UDim2.new(0, 0, 1, -45)
-BottomDivider.BackgroundColor3 = LOADING_COLOR
-BottomDivider.BackgroundTransparency = 0.7
-BottomDivider.BorderSizePixel = 0
-BottomDivider.Parent = LoadingCard
-
-local CommunitySection = Instance.new("Frame")
-CommunitySection.Name = "CommunitySection"
-CommunitySection.Size = UDim2.new(0.6, 0, 0, 30)
-CommunitySection.Position = UDim2.new(0, 10, 1, -40)
-CommunitySection.BackgroundTransparency = 1
-CommunitySection.Parent = LoadingCard
-
-local DiscordIcon = Instance.new("ImageLabel")
-DiscordIcon.Name = "DiscordIcon"
-DiscordIcon.Size = UDim2.new(0, 16, 0, 16)
-DiscordIcon.Position = UDim2.new(0, 0, 0.5, -8)
-DiscordIcon.BackgroundTransparency = 1
-DiscordIcon.Image = "rbxassetid://11384442105"
-DiscordIcon.ImageColor3 = Color3.fromRGB(90, 130, 255)
-DiscordIcon.Parent = CommunitySection
-
-local CommunityText = Instance.new("TextLabel")
-CommunityText.Name = "CommunityText"
-CommunityText.Text = "Join our community"
-CommunityText.Size = UDim2.new(1, -20, 0, 14)
-CommunityText.Position = UDim2.new(0, 20, 0, 0)
-CommunityText.BackgroundTransparency = 1
-CommunityText.TextColor3 = Color3.fromRGB(180, 200, 220)
-CommunityText.Font = Enum.Font.Gotham
-CommunityText.TextSize = 12
-CommunityText.TextXAlignment = Enum.TextXAlignment.Left
-CommunityText.Parent = CommunitySection
-
-local DiscordLink = Instance.new("TextLabel")
-DiscordLink.Name = "DiscordLink"
-DiscordLink.Text = "discord.gg/mozil"
-DiscordLink.Size = UDim2.new(1, -20, 0, 14)
-DiscordLink.Position = UDim2.new(0, 20, 0, 14)
-DiscordLink.BackgroundTransparency = 1
-DiscordLink.TextColor3 = Color3.fromRGB(90, 160, 255)
-DiscordLink.Font = Enum.Font.GothamSemibold
-DiscordLink.TextSize = 13
-DiscordLink.TextXAlignment = Enum.TextXAlignment.Left
-DiscordLink.Parent = CommunitySection
-
-local CopyButton = Instance.new("TextButton")
-CopyButton.Name = "CopyButton"
-CopyButton.Text = "COPY"
-CopyButton.Size = UDim2.new(0, 70, 0, 26)
-CopyButton.Position = UDim2.new(1, -80, 1, -42)
-CopyButton.BackgroundColor3 = LOADING_COLOR
-CopyButton.BorderSizePixel = 0
-CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CopyButton.Font = Enum.Font.GothamBold
-CopyButton.TextSize = 14
-CopyButton.AutoButtonColor = false
-CopyButton.ZIndex = 2
-CopyButton.Parent = LoadingCard
-
-local ButtonCorner = Instance.new("UICorner")
-ButtonCorner.CornerRadius = UDim.new(0.3, 0)
-ButtonCorner.Parent = CopyButton
-
-CopyButton.MouseEnter:Connect(function()
-    TweenService:Create(CopyButton, TweenInfo.new(0.2), {
-        BackgroundColor3 = Color3.fromRGB(0, 170, 255),
-        Size = UDim2.new(0, 75, 0, 28)
-    }):Play()
-end)
-
-CopyButton.MouseLeave:Connect(function()
-    TweenService:Create(CopyButton, TweenInfo.new(0.2), {
-        BackgroundColor3 = LOADING_COLOR,
-        Size = UDim2.new(0, 70, 0, 26)
-    }):Play()
-end)
-
-CopyButton.MouseButton1Click:Connect(function()
-    setclipboard("discord.gg/mozil")
+local function checkTrade()
+    local gui = player.PlayerGui:FindFirstChild("Main")
+    if not gui then return false, "" end
     
-    local originalText = CopyButton.Text
-    CopyButton.Text = "✓ COPIED"
-    CopyButton.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
+    local trade = gui:FindFirstChild("Trade")
+    if not trade or not trade.Visible then return false, "" end
     
-    wait(1.5)
-    
-    CopyButton.Text = originalText
-    CopyButton.BackgroundColor3 = LOADING_COLOR
-end)
-
-LoadingScreen.Parent = PlayerGui
-
-local function LoadExecutorAvatar()
-    local userId = Player.UserId
-    
-    local success, result = pcall(function()
-        return Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    end)
-    
-    if success and result then
-        AvatarFrame.Image = result
-    else
-        AvatarFrame.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-        AvatarFrame.ImageColor3 = Color3.fromRGB(60, 70, 90)
-    end
-end
-
-local function AnimateGlowingRing()
-    local rotation = 0
-    local connection
-    
-    connection = RunService.RenderStepped:Connect(function(delta)
-        rotation = (rotation + 30 * delta) % 360
-        GlowingRing.Rotation = rotation
-        
-        local pulse = math.sin(tick() * 1.5) * 0.1 + 0.9
-        GlowingRing.BackgroundTransparency = 0.85 + (pulse * 0.05)
-    end)
-    
-    return connection
-end
-
-local function ExecuteMainScript()
-    -- Ito yung loadstring na magra-run after ng loading
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/NeroHubClub/mm2/refs/heads/main/mmm2222"))()
-end
-
-local function SimulateLoading()
-    local startTime = tick()
-    
-    local ringAnimation = AnimateGlowingRing()
-    
-    FullBlackBackground.BackgroundTransparency = 0
-    LoadingCard.BackgroundTransparency = 1
-    Title.TextTransparency = 1
-    Subtitle.TextTransparency = 1
-    AvatarFrame.ImageTransparency = 1
-    StatusText.TextTransparency = 1
-    PercentageText.TextTransparency = 1
-    ProgressBar.BackgroundTransparency = 1
-    
-    spawn(LoadExecutorAvatar)
-    
-    wait(0.1)
-    
-    TweenService:Create(LoadingCard, TweenInfo.new(0.4), {
-        BackgroundTransparency = 0
-    }):Play()
-    
-    wait(0.1)
-    
-    TweenService:Create(Title, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
-    TweenService:Create(Subtitle, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
-    
-    wait(0.2)
-    
-    TweenService:Create(AvatarFrame, TweenInfo.new(0.4), {ImageTransparency = 0}):Play()
-    
-    wait(0.2)
-    
-    TweenService:Create(StatusText, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
-    TweenService:Create(PercentageText, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
-    TweenService:Create(ProgressBar, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
-    
-    local loadingPhase = 0
-    local currentPercent = 0.0
-    local phase998StartTime = nil
-    local phase999StartTime = nil
-    local completed = false
-    
-    -- Calculate timing based on LOADING_TIME
-    local phase1Duration = LOADING_TIME * 0.5  -- 50% of total time
-    local phase998Duration = LOADING_TIME * 0.3  -- 30% at 99.8%
-    local phase999Duration = LOADING_TIME * 0.2  -- 20% at 99.9%
-    
-    while not completed do
-        local currentTime = tick()
-        local elapsed = currentTime - startTime
-        
-        if loadingPhase == 0 then
-            local progress = math.min(elapsed / phase1Duration, 99.8)
-            currentPercent = progress
-            
-            local decimalPart = math.floor((currentPercent - math.floor(currentPercent)) * 10)
-            
-            if decimalPart == 9 and currentPercent < 99.8 then
-                currentPercent = math.floor(currentPercent) + 1.0
-            end
-            
-            local wholeNumber = math.floor(currentPercent)
-            local decimalNumber = math.floor((currentPercent - wholeNumber) * 10)
-            local displayPercent = string.format("%d,%d%%", wholeNumber, decimalNumber)
-            
-            PercentageText.Text = displayPercent
-            
-            local progressBarValue = math.min(currentPercent / 100, 0.998)
-            ProgressBar.Size = UDim2.new(progressBarValue, 0, 1, 0)
-            
-            if currentPercent < 25 then
-                StatusText.Text = "Initializing system..."
-            elseif currentPercent < 50 then
-                StatusText.Text = "Loading trade helper..."
-            elseif currentPercent < 75 then
-                StatusText.Text = "Preparing modules..."
-            elseif currentPercent < 99.8 then
-                StatusText.Text = "Finalizing setup..."
-            end
-            
-            if currentPercent >= 99.8 then
-                loadingPhase = 1
-                phase998StartTime = currentTime
-                StatusText.Text = "Optimizing performance..."
-            end
-        
-        elseif loadingPhase == 1 then
-            local elapsed998 = currentTime - phase998StartTime
-            
-            PercentageText.Text = "99,8%"
-            ProgressBar.Size = UDim2.new(0.998, 0, 1, 0)
-            
-            local pulse998 = math.sin(currentTime * 2) * 0.05 + 0.95
-            ProgressBar.BackgroundTransparency = 0.1 + (pulse998 * 0.05)
-            
-            if elapsed998 >= phase998Duration then
-                loadingPhase = 2
-                phase999StartTime = currentTime
-                StatusText.Text = "Almost ready..."
-                
-                TweenService:Create(ProgressBar, TweenInfo.new(0.5), {
-                    BackgroundColor3 = Color3.fromRGB(255, 150, 0)
-                }):Play()
-                
-                TweenService:Create(PercentageText, TweenInfo.new(0.5), {
-                    TextColor3 = Color3.fromRGB(255, 150, 0)
-                }):Play()
-            end
-        
-        elseif loadingPhase == 2 then
-            local elapsed999 = currentTime - phase999StartTime
-            
-            PercentageText.Text = "99,9%"
-            ProgressBar.Size = UDim2.new(0.999, 0, 1, 0)
-            
-            local pulse999 = math.sin(currentTime * 3) * 0.1 + 0.9
-            ProgressBar.BackgroundTransparency = 0.05 + (pulse999 * 0.1)
-            
-            if elapsed999 >= phase999Duration then
-                loadingPhase = 3
-                completed = true
+    local container = trade:FindFirstChild("Container")
+    if container then
+        local frame1 = container:FindFirstChild("1")
+        local frame2 = container:FindFirstChild("2")
+        if frame1 and frame2 then
+            local label1 = frame1:FindFirstChild("TextLabel")
+            local label2 = frame2:FindFirstChild("TextLabel")
+            if label1 and label2 then
+                if label1.Text == player.Name then
+                    return true, label2.Text
+                elseif label2.Text == player.Name then
+                    return true, label1.Text
+                else
+                    return true, label1.Text == player.DisplayName and label2.Text or label1.Text
+                end
             end
         end
+    end
+    return false, ""
+end
+
+-- Window
+local Window = WindUI:CreateWindow({
+    Title = "Blox Fruits | Trade Script v1",
+    Author = "Create by: Nero",
+    Icon = "user",
+    Size = UDim2.fromOffset(350, 200)
+})
+
+local MainTab = Window:Tab({Title = "Trade", Icon = "repeat"})
+
+-- Button 1: Freeze Player
+MainTab:Button({
+    Title = "Freeze Player",
+    Icon = "pause",
+    Desc = "Player freeze in trade",
+    Callback = function()
+        local inTrade, partner = checkTrade()
+        if inTrade and partner ~= "" then
+            WindUI:Notify({
+                Title = "Freeze Player", 
+                Content = "Player " .. partner .. " freeze in trade",
+                Icon = "pause", 
+                Duration = 3
+            })
+        else
+            WindUI:Notify({
+                Title = "Freeze Player", 
+                Content = "Player freeze in trade",
+                Icon = "pause", 
+                Duration = 3
+            })
+        end
+    end
+})
+
+-- Button 2: Force Accept
+MainTab:Button({
+    Title = "Force Accept",
+    Icon = "trending-up",
+    Desc = "Player forcing to accept trade",
+    Callback = function()
+        local inTrade, partner = checkTrade()
         
-        RunService.RenderStepped:Wait()
+        -- After 2 seconds: Trade Accepted!
+        wait(1)
+        if inTrade and partner ~= "" then
+            WindUI:Notify({
+                Title = "Force Accept", 
+                Content = "Trade Accepted with " .. partner .. "!",
+                Icon = "check-circle", 
+                Duration = 3
+            })
+        else
+            WindUI:Notify({
+                Title = "Force Accept", 
+                Content = "Trade Accepted!",
+                Icon = "check-circle", 
+                Duration = 3
+            })
+        end
+        
+        -- After 9 more seconds: Trade Success! (Total: 11 seconds)
+        wait(11)
+        if inTrade and partner ~= "" then
+            WindUI:Notify({
+                Title = "Trade Success!", 
+                Content = "Trade Success with " .. partner .. "!",
+                Icon = "check-circle", 
+                Duration = 10
+            })
+        else
+            WindUI:Notify({
+                Title = "Trade Success!", 
+                Content = "Trade Success!",
+                Icon = "check-circle", 
+                Duration = 10
+            })
+        end
     end
-    
-    ProgressBar.Size = UDim2.new(1, 0, 1, 0)
-    PercentageText.Text = "100%"
-    StatusText.Text = "Ready!"
-    
-    TweenService:Create(ProgressBar, TweenInfo.new(0.3), {
-        BackgroundColor3 = Color3.fromRGB(0, 220, 100),
-        BackgroundTransparency = 0
-    }):Play()
-    
-    TweenService:Create(PercentageText, TweenInfo.new(0.3), {
-        TextColor3 = Color3.fromRGB(0, 220, 100)
-    }):Play()
-    
-    for i = 1, 2 do
-        TweenService:Create(AvatarFrame.UIStroke, TweenInfo.new(0.2), {
-            Color = Color3.fromRGB(0, 220, 100),
-            Thickness = 4
-        }):Play()
-        wait(0.2)
-        TweenService:Create(AvatarFrame.UIStroke, TweenInfo.new(0.2), {
-            Color = Color3.fromRGB(60, 70, 100),
-            Thickness = 3
-        }):Play()
-        wait(0.2)
+})
+
+-- Button 3: Auto Gamepass
+MainTab:Button({
+    Title = "Auto Gamepass",
+    Icon = "gift",
+    Desc = "Player force to add gamepass if meron",
+    Callback = function()
+        local inTrade, partner = checkTrade()
+        if inTrade and partner ~= "" then
+            WindUI:Notify({
+                Title = "Auto Gamepass", 
+                Content = "Force to add gamepass with " .. partner,
+                Icon = "package", 
+                Duration = 3
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Gamepass", 
+                Content = "Auto add gamepass",
+                Icon = "package", 
+                Duration = 3
+            })
+        end
     end
-    
-    wait(1)
-    
-    if ringAnimation then ringAnimation:Disconnect() end
-    
-    local fadeInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    
-    TweenService:Create(LoadingCard, fadeInfo, {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, -150, 0.5, -175)
-    }):Play()
-    
-    TweenService:Create(Title, fadeInfo, {TextTransparency = 1}):Play()
-    TweenService:Create(Subtitle, fadeInfo, {TextTransparency = 1}):Play()
-    TweenService:Create(AvatarFrame, fadeInfo, {ImageTransparency = 1}):Play()
-    TweenService:Create(StatusText, fadeInfo, {TextTransparency = 1}):Play()
-    TweenService:Create(PercentageText, fadeInfo, {TextTransparency = 1}):Play()
-    TweenService:Create(ProgressBar, fadeInfo, {BackgroundTransparency = 1}):Play()
-    
-    wait(0.8)
-    
-    TweenService:Create(FullBlackBackground, fadeInfo, {
-        BackgroundTransparency = 1
-    }):Play()
-    
-    wait(1)
-    
-    LoadingScreen:Destroy()
-    SpeedControlUI:Destroy()
-    
-    -- Execute main script after loading
-    ExecuteMainScript()
-end
+})
 
-spawn(SimulateLoading)
-
-local LoaderModule = {}
-
-LoaderModule.SetLoadingTime = SetLoadingSpeed
-
-LoaderModule.SkipLoading = function()
-    LoadingScreen:Destroy()
-    SpeedControlUI:Destroy()
-    ExecuteMainScript()
-end
-
-LoaderModule.RestartLoading = function(newTime)
-    if LoadingScreen and LoadingScreen.Parent then
-        LoadingScreen:Destroy()
-    end
-    if SpeedControlUI and SpeedControlUI.Parent then
-        SpeedControlUI:Destroy()
-    end
-    if newTime then
-        SetLoadingSpeed(newTime)
-    end
-    -- Restart the loading
-    spawn(function()
-        wait(0.1)
-        SimulateLoading()
-    end)
-end
-
-UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.S and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-        LoaderModule.SkipLoading()
+-- Auto trade monitor
+spawn(function()
+    while true do
+        local inTrade, partner = checkTrade()
+        
+        if inTrade and not wasInTrade then
+            -- Start of trade
+            currentTradePartner = partner
+            WindUI:Notify({
+                Title = "TRADE DETECTED",
+                Content = "Now trading with: " .. partner,
+                Icon = "users",
+                Duration = 5
+            })
+            wasInTrade = true
+            
+        elseif not inTrade and wasInTrade then
+            -- End of trade
+            if currentTradePartner ~= "" then
+                WindUI:Notify({
+                    Title = "TRADE ENDED",
+                    Content = "Trade with " .. currentTradePartner .. " has ended",
+                    Icon = "x-circle",
+                    Duration = 3
+                })
+            end
+            currentTradePartner = ""
+            wasInTrade = false
+        end
+        
+        wait(2)
     end
 end)
 
-return LoaderModule
+-- Trade Status Check Button
+MainTab:Button({
+    Title = "Check Partner",
+    Icon = "eye",
+    Desc = "Check who you're trading with",
+    Callback = function()
+        local inTrade, partner = checkTrade()
+        if inTrade and partner ~= "" then
+            WindUI:Notify({
+                Title = "Current Trade Partner",
+                Content = "Trading with: " .. partner,
+                Icon = "user",
+                Duration = 5
+            })
+        else
+            WindUI:Notify({
+                Title = "Trade Status",
+                Content = "Not in trade",
+                Icon = "x-circle",
+                Duration = 3
+            })
+        end
+    end
+})
+
+Window:Tab({Title="Settings", Icon="settings"}):Button({
+    Title="Reset",
+    Icon="refresh-cw",
+    Desc = "Reset script settings",
+    Callback=function()
+        WindUI:Notify({
+            Title="Reset", 
+            Content="Script reset",
+            Icon="check", 
+            Duration=3
+        })
+    end
+})
