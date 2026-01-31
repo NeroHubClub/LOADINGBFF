@@ -118,7 +118,7 @@ MainTab:Button({
 MainTab:Button({
     Title = "Auto Gamepass",
     Icon = "gift",
-    Desc = "Player force to add gamepass if meron",
+    Desc = "Player force to add gamepass",
     Callback = function()
         local inTrade, partner = checkTrade()
         if inTrade and partner ~= "" then
